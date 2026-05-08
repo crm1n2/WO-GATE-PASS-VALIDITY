@@ -1,0 +1,268 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WO Gate Pass & Safety Dashboard</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#0f172a;
+    color:white;
+}
+.header{
+    background:#111827;
+    padding:20px;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
+.summary{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    justify-content:center;
+    padding:20px;
+}
+.summary-card{
+    background:#1e293b;
+    padding:20px;
+    border-radius:12px;
+    width:220px;
+    text-align:center;
+}
+.summary-card h2{
+    margin:0;
+    font-size:36px;
+}
+.container{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    justify-content:center;
+    padding:20px;
+}
+.card{
+    background:#1e293b;
+    width:320px;
+    border-radius:14px;
+    padding:18px;
+    border-left:8px solid #22c55e;
+}
+.expired{
+    border-left-color:#ef4444;
+}
+.warning{
+    border-left-color:#f59e0b;
+}
+.title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:12px;
+}
+.alert{
+    padding:8px;
+    border-radius:8px;
+    margin-bottom:10px;
+    font-weight:bold;
+}
+.alert-expired{
+    background:#7f1d1d;
+}
+.alert-warning{
+    background:#78350f;
+}
+.alert-ok{
+    background:#14532d;
+}
+p{
+    margin:6px 0;
+    line-height:1.4;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+WO Gate Pass & Safety Dashboard
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="container" id="dashboard"></div>
+
+<script>
+
+const API =
+"https://opensheet.elk.sh/1O7guxBa1XJOoBWwgzgBzRKhpG60iEgvjWMwcWIMyrYs/1";
+
+function parseDate(str){
+
+    if(!str) return null;
+
+    str = str.trim();
+
+    let parts;
+
+    if(str.includes("/")){
+        parts = str.split("/");
+    }
+    else if(str.includes(".")){
+        parts = str.split(".");
+    }
+    else{
+        return null;
+    }
+
+    if(parts.length !== 3) return null;
+
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1;
+    const year = parseInt(parts[2]);
+
+    return new Date(year, month, day);
+}
+
+async function loadData(){
+
+    try{
+
+        const response = await fetch(API);
+        const data = await response.json();
+
+        const dashboard =
+        document.getElementById("dashboard");
+
+        const summary =
+        document.getElementById("summary");
+
+        dashboard.innerHTML = "";
+
+        let total = 0;
+        let expired = 0;
+        let warning = 0;
+        let active = 0;
+
+        data.forEach(row => {
+
+            if(!row["Name of Worker"] ||
+               row["Name of Worker"] === "Name of Worker")
+               return;
+
+            total++;
+
+            let cardClass = "card";
+            let alertText = "ACTIVE";
+            let alertClass = "alert alert-ok";
+
+            const issueTo = row["Issue To"];
+            const expiryDate = parseDate(issueTo);
+
+            if(expiryDate){
+
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                const diffDays =
+                Math.ceil((expiryDate - today)/(1000*60*60*24));
+
+                if(diffDays < 0){
+
+                    expired++;
+                    cardClass += " expired";
+                    alertText = "EXPIRED";
+                    alertClass = "alert alert-expired";
+
+                }else if(diffDays <= 30){
+
+                    warning++;
+                    cardClass += " warning";
+                    alertText =
+                    "EXPIRING IN " + diffDays + " DAYS";
+                    alertClass = "alert alert-warning";
+
+                }else{
+
+                    active++;
+                }
+            }
+
+            dashboard.innerHTML += `
+                <div class="${cardClass}">
+
+                    <div class="${alertClass}">
+                        ${alertText}
+                    </div>
+
+                    <div class="title">
+                        ${row["Name of Worker"]}
+                    </div>
+
+                    <p><b>WO NO:</b>
+                    ${row["WO NO"] || "-"}</p>
+
+                    <p><b>Gate Pass:</b>
+                    ${row["Gate Pass No"] || "-"}</p>
+
+                    <p><b>Vendor:</b>
+                    ${row["VENDOR"] || "-"}</p>
+
+                    <p><b>Issue From:</b>
+                    ${row["Issue From"] || "-"}</p>
+
+                    <p><b>Issue To:</b>
+                    ${row["Issue To"] || "-"}</p>
+
+                    <p><b>IP No:</b>
+                    ${row["IP NO"] || "-"}</p>
+
+                </div>
+            `;
+        });
+
+        summary.innerHTML = `
+
+            <div class="summary-card">
+                <p>Total Workers</p>
+                <h2>${total}</h2>
+            </div>
+
+            <div class="summary-card">
+                <p>Active</p>
+                <h2>${active}</h2>
+            </div>
+
+            <div class="summary-card">
+                <p>Expiring Soon</p>
+                <h2>${warning}</h2>
+            </div>
+
+            <div class="summary-card">
+                <p>Expired</p>
+                <h2>${expired}</h2>
+            </div>
+        `;
+
+    }
+    catch(err){
+
+        document.getElementById("dashboard")
+        .innerHTML =
+        "<h2>Error loading data</h2>";
+
+        console.error(err);
+    }
+}
+
+loadData();
+
+setInterval(loadData,10000);
+
+</script>
+
+</body>
+</html>
