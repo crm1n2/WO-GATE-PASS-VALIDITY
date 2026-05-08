@@ -1,66 +1,124 @@
 
-# Google Sheets Cross-Device Dashboard
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial Live Dashboard</title>
 
-## STEP 1 — Create Google Sheet
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#111827;
+    color:white;
+}
 
-Create columns exactly like this:
+.header{
+    padding:20px;
+    background:#1f2937;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
 
-| Name | Value | Status | Updated |
+.container{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    padding:20px;
+    justify-content:center;
+}
 
-Example:
+.card{
+    background:#1e293b;
+    border-radius:14px;
+    padding:20px;
+    width:280px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
 
-| Motor-1 | 78°C | Running | 5:30 PM |
+.title{
+    font-size:20px;
+    margin-bottom:10px;
+}
 
----
+.value{
+    font-size:32px;
+    font-weight:bold;
+}
 
-## STEP 2 — Publish Sheet
+.updated{
+    margin-top:10px;
+    font-size:12px;
+    color:#9ca3af;
+}
+</style>
+</head>
 
-In Google Sheets:
+<body>
 
-File → Share → Publish to web
+<div class="header">
+    Live Industrial Dashboard
+</div>
 
----
+<div class="container" id="dashboard"></div>
 
-## STEP 3 — Copy Sheet ID
+<script>
 
-From URL:
+// ======= PASTE YOUR API BELOW =======
+const API =
+"https://docs.google.com/spreadsheets/d/1O7guxBa1XJOoBWwgzgBzRKhpG60iEgvjWMwcWIMyrYs/edit?gid=0#gid=0";
+// ====================================
 
-https://docs.google.com/spreadsheets/d/SHEET_ID/edit
+async function loadData(){
 
----
+    try{
 
-## STEP 4 — Open index.html
+        const response = await fetch(API);
+        const data = await response.json();
 
-Replace:
+        const dashboard =
+        document.getElementById("dashboard");
 
-https://opensheet.elk.sh/YOUR_SHEET_ID/Sheet1
+        dashboard.innerHTML = "";
 
-with:
+        data.forEach(row => {
 
-https://opensheet.elk.sh/SHEET_ID/Sheet1
+            dashboard.innerHTML += `
+                <div class="card">
+                    <div class="title">${row.Name || "Device"}</div>
 
----
+                    <div class="value">
+                        ${row.Value || "-"}
+                    </div>
 
-## STEP 5 — Upload to GitHub
+                    <p>Status: ${row.Status || "-"}</p>
 
-Create repository and upload index.html
+                    <div class="updated">
+                        Updated:
+                        ${row.Updated || "-"}
+                    </div>
+                </div>
+            `;
+        });
 
----
+    }
+    catch(err){
 
-## STEP 6 — Enable GitHub Pages
+        document.getElementById("dashboard")
+        .innerHTML =
+        "<h2>Error loading data</h2>";
 
-Settings → Pages → Deploy from branch
+        console.error(err);
+    }
+}
 
-Your dashboard becomes live globally.
+loadData();
 
----
+setInterval(loadData,5000);
 
-## FEATURES
+</script>
 
-✓ Mobile friendly  
-✓ Auto refresh every 5 seconds  
-✓ Cross-device sync  
-✓ Dark theme  
-✓ Industrial dashboard layout  
-✓ No backend needed  
-
+</body>
+</html>
