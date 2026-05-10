@@ -171,24 +171,42 @@ function parseDate(str){
     );
 }
 
-function getStatus(issueTo){
+function latestOnly(rows){
 
-    const expiryDate = parseDate(issueTo);
+   const map = {};
 
-    if(!expiryDate) return "ACTIVE";
+   rows.forEach(r => {
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+      const key =
+      r["IP No"] ||
+      r["IP NO"] ||
+      r["Name of Worker"];
 
-    const diffDays =
-    Math.ceil((expiryDate - today)/(1000*60*60*24));
+      if(!key) return;
 
-    if(diffDays < 0) return "EXPIRED";
-    if(diffDays <= 30) return "WARNING";
+      const current =
+      parseDate(r["Issue To"]);
 
-    return "ACTIVE";
+      if(!map[key]){
+
+         map[key] = r;
+         return;
+      }
+
+      const existing =
+      parseDate(map[key]["Issue To"]);
+
+      if(current && existing){
+
+         if(current > existing){
+            map[key] = r;
+         }
+      }
+
+   });
+
+   return Object.values(map);
 }
-
 function renderDashboard(data){
 
     const dashboard =
