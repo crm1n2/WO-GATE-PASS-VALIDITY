@@ -302,24 +302,38 @@ async function loadData(){
         x["Name of Worker"] !== "Name of Worker"
     );
 
-    let total = globalData.length;
-    let active = 0;
-    let warning = 0;
-    let expired = 0;
+const uniqueIPs = new Set();
 
-    globalData.forEach(row => {
+let active = 0;
+let warning = 0;
+let expired = 0;
 
-        const status =
-        getStatus(row["Issue To"]);
+master.forEach(r=>{
 
-        if(status === "ACTIVE") active++;
-        if(status === "WARNING"){
-            active++;
-            warning++;
-        }
-        if(status === "EXPIRED") expired++;
-    });
+   const ip = r["IP NO"];
 
+   if(ip){
+      uniqueIPs.add(ip);
+   }
+
+   const s = getStatus(r["Issue To"]);
+
+   if(s==="ACTIVE"){
+      active++;
+   }
+
+   if(s==="WARNING"){
+      active++;
+      warning++;
+   }
+
+   if(s==="EXPIRED"){
+      expired++;
+   }
+
+});
+
+let total = uniqueIPs.size;
     document.getElementById("summary").innerHTML = `
         <div class="summary-card total">
             TOTAL
