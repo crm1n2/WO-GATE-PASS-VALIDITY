@@ -142,6 +142,8 @@ WO Gate Pass Alert Center
 Live synced from Google Sheets • Auto refresh every 10 sec
 </div>
 
+
+
 <script>
 
 const API =
@@ -169,6 +171,25 @@ function parseDate(str){
         parseInt(parts[1])-1,
         parseInt(parts[0])
     );
+}
+
+function getStatus(issueTo){
+
+    const expiryDate = parseDate(issueTo);
+
+    if(!expiryDate) return "ACTIVE";
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const diffDays =
+    Math.ceil((expiryDate - today)/(1000*60*60*24));
+
+    if(diffDays < 0) return "EXPIRED";
+
+    if(diffDays <= 30) return "WARNING";
+
+    return "ACTIVE";
 }
 
 function latestOnly(rows){
@@ -207,108 +228,6 @@ function latestOnly(rows){
 
    return Object.values(map);
 }
-function renderDashboard(data){
-
-    const dashboard =
-    document.getElementById("dashboard");
-
-    dashboard.innerHTML = "";
-
-    const nameFilter =
-    document.getElementById("searchName").value.toLowerCase();
-
-    const ipFilter =
-    document.getElementById("searchIP").value.toLowerCase();
-
-    const gpFilter =
-    document.getElementById("searchGP").value.toLowerCase();
-
-    const icFilter =
-    document.getElementById("searchIC").value.toLowerCase();
-
-    const statusFilter =
-    document.getElementById("statusFilter").value;
-
-    data.forEach(row => {
-
-        const worker =
-        (row["Name of Worker"] || "").toLowerCase();
-
-        const ip =
-        (row["IP NO"] || "").toLowerCase();
-
-        const gp =
-        (row["Gate Pass No"] || "").toLowerCase();
-
-        const ic =
-        (row["ENGG I/C"] || "").toLowerCase();
-
-        const status =
-        getStatus(row["Issue To"]);
-
-        if(nameFilter && !worker.includes(nameFilter)) return;
-        if(ipFilter && !ip.includes(ipFilter)) return;
-        if(gpFilter && !gp.includes(gpFilter)) return;
-        if(icFilter && !ic.includes(icFilter)) return;
-        if(statusFilter && status !== statusFilter) return;
-
-        let cardClass = "card";
-        let alertClass = "alert alert-active";
-        let alertText = "ACTIVE";
-
-        if(status === "WARNING"){
-            cardClass += " warning-card";
-            alertClass = "alert alert-warning";
-            alertText = "EXPIRING SOON";
-        }
-
-        if(status === "EXPIRED"){
-            cardClass += " expired-card";
-            alertClass = "alert alert-expired";
-            alertText = "EXPIRED";
-        }
-
-        dashboard.innerHTML += `
-            <div class="${cardClass}">
-
-                <div class="${alertClass}">
-                    ${alertText}
-                </div>
-
-                <div class="title">
-                    ${row["Name of Worker"] || "-"}
-                </div>
-
-                <div class="row"><b>WO NO:</b>
-                ${row["WO NO"] || "-"}</div>
-
-                <div class="row"><b>Gate Pass:</b>
-                ${row["Gate Pass No"] || "-"}</div>
-
-                <div class="row"><b>IP No:</b>
-                ${row["IP NO"] || "-"}</div>
-
-                <div class="row"><b>ENGG I/C:</b>
-                ${row["ENGG I/C"] || "-"}</div>
-
-                <div class="row"><b>Vendor:</b>
-                ${row["VENDOR"] || "-"}</div>
-
-                <div class="row"><b>Issue From:</b>
-                ${row["Issue From"] || "-"}</div>
-
-                <div class="row"><b>Issue To:</b>
-                ${row["Issue To"] || "-"}</div>
-
-                <div class="details">
-                    <b>Details:</b><br>
-                    ${row["DETAILS"] || "-"}
-                </div>
-
-            </div>
-        `;
-    });
-}
 
 async function loadData(){
 
@@ -320,77 +239,46 @@ async function loadData(){
         x["Name of Worker"] !== "Name of Worker"
     );
 
-const uniqueIPs = new Set();
+    globalData = latestOnly(globalData);
 
-let active = 0;
-let warning = 0;
-let expired = 0;
+    const uniqueIPs = new Set();
 
-master.forEach(r=>{
+    let active = 0;
+    let warning = 0;
+    let expired = 0;
 
-   const ip = r["IP NO"];
+    globalData.forEach(r=>{
 
-   if(ip){
-      uniqueIPs.add(ip);
-   }
+       const ip = r["IP NO"];
 
-   const s = getStatus(r["Issue To"]);
+       if(ip){
+          uniqueIPs.add(ip);
+       }
 
-   if(s==="ACTIVE"){
-      active++;
-   }
+       const s = getStatus(r["Issue To"]);
 
-   if(s==="WARNING"){
-      active++;
-      warning++;
-   }
+       if(s==="ACTIVE"){
+          active++;
+       }
 
-   if(s==="EXPIRED"){
-      expired++;
-   }
+       if(s==="WARNING"){
+          active++;
+          warning++;
+       }
 
-});
+       if(s==="EXPIRED"){
+          expired++;
+       }
 
-let total = uniqueIPs.size;
-    document.getElementById("summary").innerHTML = `
-        <div class="summary-card total">
-            TOTAL
-            <h2>${total}</h2>
-        </div>
+    });
 
-        <div class="summary-card active">
-            VALID
-            <h2>${active}</h2>
-        </div>
+    let total = uniqueIPs.size;
 
-        <div class="summary-card warning">
-            EXPIRING
-            <h2>${warning}</h2>
-        </div>
-
-        <div class="summary-card expired">
-            EXPIRED
-            <h2>${expired}</h2>
-        </div>
-    `;
-
-    renderDashboard(globalData);
+    console.log(total, active, warning, expired);
 }
 
-["searchName","searchIP","searchGP","searchIC","statusFilter"]
-.forEach(id => {
-    document.getElementById(id)
-    .addEventListener("input", () => renderDashboard(globalData));
-
-    document.getElementById(id)
-    .addEventListener("change", () => renderDashboard(globalData));
-});
-
-loadData();
-
-setInterval(loadData,10000);
-
 </script>
+
 
 </body>
 </html>
